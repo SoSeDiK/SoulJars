@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bstats.bukkit.Metrics;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -16,13 +15,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import io.github.thebusybiscuit.cscorelib2.config.Config;
-import io.github.thebusybiscuit.cscorelib2.updater.BukkitUpdater;
-import io.github.thebusybiscuit.cscorelib2.updater.GitHubBuildsUpdater;
-import io.github.thebusybiscuit.cscorelib2.updater.Updater;
-import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.Item.CustomItem;
 import me.mrCookieSlime.CSCoreLibPlugin.general.String.StringUtils;
 import me.mrCookieSlime.CSCoreLibPlugin.general.World.CustomSkull;
+import me.mrCookieSlime.Slimefun.api.SlimefunItemStack;
+import me.mrCookieSlime.Slimefun.bstats.bukkit.Metrics;
+import me.mrCookieSlime.Slimefun.cscorelib2.config.Config;
+import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
+import me.mrCookieSlime.Slimefun.cscorelib2.updater.BukkitUpdater;
+import me.mrCookieSlime.Slimefun.cscorelib2.updater.GitHubBuildsUpdater;
+import me.mrCookieSlime.Slimefun.cscorelib2.updater.Updater;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
 import me.mrCookieSlime.Slimefun.Lists.SlimefunItems;
 import me.mrCookieSlime.Slimefun.Objects.Category;
@@ -36,7 +37,7 @@ public class SoulJars extends JavaPlugin implements Listener {
 	private Config cfg;
 	private Category category;
 	private RecipeType recipeType;
-	private ItemStack jar;
+	private SlimefunItemStack jar;
 
 	@Override
 	public void onEnable() {
@@ -57,17 +58,18 @@ public class SoulJars extends JavaPlugin implements Listener {
 			updater = new GitHubBuildsUpdater(this, getFile(), "TheBusyBiscuit/SoulJars/master");
 		}
 
+		// Only run the Updater if it has not been disabled
 		if (cfg.getBoolean("options.auto-update")) updater.start();
 
 		try {
 			category = new Category(new CustomItem(CustomSkull.getItem("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19"), "&bСосуды душ", "", "&a> Нажмите, чтобы открыть"));
 			recipeType = new RecipeType(new CustomItem(Material.DIAMOND_SWORD, "&cУбейте указанного моба, имея", "&cпустой сосуд душ в инвентаре"));
-			jar = new CustomItem(CustomSkull.getItem("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19"), "&bСосуд душ &7(пустой)", "", "&rУбейте моба, имея сосуд в инвентаре,", "&rчтобы запечатать его душу");
+			jar = new SlimefunItemStack("SOUL_JAR", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19", "&bСосуд душ &7(пустой)", "", "&rУбейте моба, имея сосуд в инвентаре,", "&rчтобы запечатать его душу");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		new SlimefunItem(category, jar, "SOUL_JAR", RecipeType.ANCIENT_ALTAR,
+		new SlimefunItem(category, jar, RecipeType.ANCIENT_ALTAR,
 		new ItemStack[] {SlimefunItems.RUNE_EARTH, new ItemStack(Material.SOUL_SAND), SlimefunItems.RUNE_WATER, new ItemStack(Material.SOUL_SAND), SlimefunItems.NECROTIC_SKULL, new ItemStack(Material.SOUL_SAND), SlimefunItems.RUNE_AIR, new ItemStack(Material.SOUL_SAND), SlimefunItems.RUNE_FIRE},
 		new CustomItem(jar, 3))
 		.register();
@@ -84,22 +86,22 @@ public class SoulJars extends JavaPlugin implements Listener {
 		}
 	}
 
-	private void registerSoul(String mob, EntityType type) throws Exception {
+	private void registerSoul(String mob, EntityType type) {
 		int souls = cfg.getOrSetDefault("souls-required." + type.toString(), 128);
 		mobs.put(type, souls);
 		
 		Material m = Material.getMaterial(type.toString() + "_SPAWN_EGG");
 		if (m == null) m = Material.ZOMBIE_SPAWN_EGG;
 
-		new SlimefunItem(category, new CustomItem(CustomSkull.getItem("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19"), "&cСосуд душ &7(" + StringUtils.format(mob) + ")", "", "&7Запечатанные души: &e1"), mob + "_SOUL_JAR", recipeType,
+		new SlimefunItem(category, new SlimefunItemStack(mob + "_SOUL_JAR", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19", "&cСосуд душ &7(" + StringUtils.format(mob) + ")", "", "&7Запечатанные души: &e1"), mob + "_SOUL_JAR", recipeType,
 		new ItemStack[] {null, null, null, jar, null, new CustomItem(m, "&rУбейте " + souls + "x " + StringUtils.format(mob)), null, null, null}, true)
 		.register();
 
-		new SlimefunItem(category, new CustomItem(CustomSkull.getItem("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19"), "&cЗаполненный сосуд душ &7(" + StringUtils.format(mob) + ")", "", "&7Запечатанные души: &e" + souls), "FILLED_" + mob + "_SOUL_JAR", recipeType,
+		new SlimefunItem(category, new SlimefunItemStack("FILLED_" + mob + "_SOUL_JAR", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19", "&cЗаполненный сосуд душ &7(" + StringUtils.format(mob) + ")", "", "&7Запечатанные души: &e" + souls), recipeType,
 		new ItemStack[] {null, null, null, jar, null, new CustomItem(m, "&rУбейте " + souls + "x " + StringUtils.format(mob)), null, null, null})
 		.register();
 
-		new SlimefunItem(category, new CustomItem(Material.SPAWNER, "&cСломанный спавнер", "&7Тип: &b" + StringUtils.format(mob), "", "&cМожно починить, используя древний алтарь"), mob + "_BROKEN_SPAWNER", RecipeType.ANCIENT_ALTAR,
+		new SlimefunItem(category, new SlimefunItemStack(mob + "_BROKEN_SPAWNER", Material.SPAWNER, "&cСломанный спавнер", "&7Тип: &b" + StringUtils.format(mob), "", "&cМожно починить, используя древний алтарь"), RecipeType.ANCIENT_ALTAR,
 		new ItemStack[] {new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, SlimefunItem.getItem("FILLED_" + mob + "_SOUL_JAR"), SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS)})
 		.register();
 	}
@@ -116,7 +118,7 @@ public class SoulJars extends JavaPlugin implements Listener {
 		String jarType = e.getEntity().getType().toString() + "_SOUL_JAR";
 		for (int slot = 0; slot < killer.getInventory().getSize(); slot++) {
 			ItemStack stack = killer.getInventory().getItem(slot);
-			if (SlimefunManager.isItemSimiliar(stack, SlimefunItem.getItem(jarType), false)) {
+			if (stack != null && SlimefunManager.isItemSimiliar(stack, SlimefunItem.getItem(jarType), false)) {
 				List<String> lore = stack.getItemMeta().getLore();
 				int souls = Integer.parseInt(ChatColor.stripColor(lore.get(1)).split(": ")[1]) + 1, requiredSouls = mobs.get(e.getEntityType());
 
@@ -148,9 +150,13 @@ public class SoulJars extends JavaPlugin implements Listener {
 			}
 		}
 
-		if (killer.getInventory().containsAtLeast(jar, 1)) {
-			killer.getInventory().removeItem(new CustomItem(jar, 1));
-			killer.getWorld().dropItemNaturally(e.getEntity().getLocation(), SlimefunItem.getItem(jarType));
+		for (int slot = 0; slot < killer.getInventory().getSize(); slot++) {
+			ItemStack stack = killer.getInventory().getItem(slot);
+			if (stack != null && SlimefunManager.isItemSimiliar(stack, jar, false)) {
+				stack.setAmount(stack.getAmount() - 1);
+				killer.getWorld().dropItemNaturally(e.getEntity().getLocation(), SlimefunItem.getItem(jarType));
+				return;
+			}
 		}
 	}
 
