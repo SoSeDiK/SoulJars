@@ -90,63 +90,67 @@ public class SoulJars extends JavaPlugin implements Listener {
 		
 		Material m = Material.getMaterial(type.toString() + "_SPAWN_EGG");
 		if (m == null) m = Material.ZOMBIE_SPAWN_EGG;
-		
-		ItemStack soulJar = new CustomItem(CustomSkull.getItem("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19"), "&cСосуд душ &7(" + StringUtils.format(mob) + ")", "", "&7Запечатанные души: &e" + souls);
 
-		new SlimefunItem(category, soulJar, mob + "_SOUL_JAR", recipeType,
+		new SlimefunItem(category, new CustomItem(CustomSkull.getItem("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19"), "&cСосуд душ &7(" + StringUtils.format(mob) + ")", "", "&7Запечатанные души: &e1"), mob + "_SOUL_JAR", recipeType,
+		new ItemStack[] {null, null, null, jar, null, new CustomItem(m, "&rУбейте " + souls + "x " + StringUtils.format(mob)), null, null, null}, true)
+		.register();
+
+		new SlimefunItem(category, new CustomItem(CustomSkull.getItem("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQxYzc3N2VlMTY2YzQ3Y2FlNjk4YWU2Yjc2OWRhNGUyYjY3ZjQ2ODg1NTMzMGFkN2JkZGQ3NTFjNTI5M2YifX19"), "&cЗаполненный сосуд душ &7(" + StringUtils.format(mob) + ")", "", "&7Запечатанные души: &e" + souls), "FILLED_" + mob + "_SOUL_JAR", recipeType,
 		new ItemStack[] {null, null, null, jar, null, new CustomItem(m, "&rУбейте " + souls + "x " + StringUtils.format(mob)), null, null, null})
 		.register();
 
 		new SlimefunItem(category, new CustomItem(Material.SPAWNER, "&cСломанный спавнер", "&7Тип: &b" + StringUtils.format(mob), "", "&cМожно починить, используя древний алтарь"), mob + "_BROKEN_SPAWNER", RecipeType.ANCIENT_ALTAR,
-		new ItemStack[] {new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, soulJar, SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS)})
+		new ItemStack[] {new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, SlimefunItem.getItem("FILLED_" + mob + "_SOUL_JAR"), SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS), SlimefunItems.RUNE_EARTH, new ItemStack(Material.IRON_BARS)})
 		.register();
 	}
 
 	@EventHandler
 	public void onKill(EntityDeathEvent e) {
-		Integer requiredSouls = mobs.get(e.getEntity().getType());
-		if (requiredSouls == null) return;
-		
+		if (!mobs.containsKey(e.getEntityType()))
+			return;
+
 		Player killer = e.getEntity().getKiller();
-		if (killer instanceof Player) {
-			for (int slot = 0; slot < killer.getInventory().getSize(); slot++) {
-				ItemStack stack = killer.getInventory().getItem(slot);
-				if (SlimefunManager.isItemSimiliar(stack, SlimefunItem.getItem(e.getEntity().getType().toString() + "_SOUL_JAR"), false)) {
-					List<String> lore = stack.getItemMeta().getLore();
-					int souls = Integer.parseInt(ChatColor.stripColor(lore.get(1)).split(": ")[1]);
-					
-					if (souls == requiredSouls) {
-						continue;
+		if (killer == null)
+			return;
+
+		String jarType = e.getEntity().getType().toString() + "_SOUL_JAR";
+		for (int slot = 0; slot < killer.getInventory().getSize(); slot++) {
+			ItemStack stack = killer.getInventory().getItem(slot);
+			if (SlimefunManager.isItemSimiliar(stack, SlimefunItem.getItem(jarType), false)) {
+				List<String> lore = stack.getItemMeta().getLore();
+				int souls = Integer.parseInt(ChatColor.stripColor(lore.get(1)).split(": ")[1]) + 1, requiredSouls = mobs.get(e.getEntityType());
+
+				if (souls >= requiredSouls) {
+					if (stack.getAmount() > 1) {
+						stack.setAmount(stack.getAmount() - 1);
+						killer.getInventory().addItem(SlimefunItem.getItem("FILLED_" + jarType));
+					} else {
+						killer.getInventory().setItem(slot, SlimefunItem.getItem("FILLED_" + jarType));
 					}
-					
-					souls++;
-					
-					if (souls >= requiredSouls) {
-						ItemStack item = new CustomItem(SlimefunItem.getItem(e.getEntity().getType().toString() + "_SOUL_JAR"), stack.getAmount());
-						killer.getInventory().setItem(slot, item);
-					}
-					else {
-						lore.set(1, ChatColor.translateAlternateColorCodes('&', lore.get(1).split(": ")[0] + ": &e" + souls));
+				} else {
+					lore.set(1, ChatColor.translateAlternateColorCodes('&', lore.get(1).split(": ")[0] + ": &e" + souls));
+					if (stack.getAmount() > 1) {
+						stack.setAmount(stack.getAmount() - 1);
+						stack = stack.clone();
+						stack.setAmount(1);
 						ItemMeta im = stack.getItemMeta();
 						im.setLore(lore);
 						stack.setItemMeta(im);
-						killer.getInventory().setItem(slot, stack);
+						killer.getInventory().addItem(stack);
+					} else {
+						ItemMeta im = stack.getItemMeta();
+						im.setLore(lore);
+						stack.setItemMeta(im);
 					}
-					
-					return;
 				}
-			}
 
-			if (killer.getInventory().containsAtLeast(jar, 1)) {
-				killer.getInventory().removeItem(new CustomItem(jar, 1));
-				ItemStack stack = SlimefunItem.getItem(e.getEntity().getType().toString() + "_SOUL_JAR");
-				List<String> lore = stack.getItemMeta().getLore();
-				lore.set(1, ChatColor.translateAlternateColorCodes('&', lore.get(1).split(": ")[0] + ": &e" + 1));
-				ItemMeta im = stack.getItemMeta();
-				im.setLore(lore);
-				stack.setItemMeta(im);
-				killer.getWorld().dropItemNaturally(killer.getEyeLocation(), stack);
+				return;
 			}
+		}
+
+		if (killer.getInventory().containsAtLeast(jar, 1)) {
+			killer.getInventory().removeItem(new CustomItem(jar, 1));
+			killer.getWorld().dropItemNaturally(e.getEntity().getLocation(), SlimefunItem.getItem(jarType));
 		}
 	}
 
